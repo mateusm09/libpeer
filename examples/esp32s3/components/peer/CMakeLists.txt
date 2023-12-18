@@ -1,6 +1,6 @@
 
-set(COREMQTT_CMAKE_FILE ${CMAKE_SOURCE_DIR}/../../third_party/coreMQTT/mqttFilePaths.cmake)
-set(COREHTTP_CMAKE_FILE ${CMAKE_SOURCE_DIR}/../../third_party/coreHTTP/httpFilePaths.cmake)
+# set(COREMQTT_CMAKE_FILE ${CMAKE_SOURCE_DIR}/../../third_party/coreMQTT/mqttFilePaths.cmake)
+# set(COREHTTP_CMAKE_FILE ${CMAKE_SOURCE_DIR}/../../third_party/coreHTTP/httpFilePaths.cmake)
 set(PEER_PROJECT_PATH "../../../..")
 
 if (EXISTS ${COREHTTP_CMAKE_FILE})
@@ -16,7 +16,7 @@ file(GLOB CODES "${PEER_PROJECT_PATH}/src/*.c")
 idf_component_register(
   SRCS ${CODES} ${HTTP_SOURCES} ${MQTT_SOURCES} ${MQTT_SERIALIZER_SOURCES}
   INCLUDE_DIRS "${PEER_PROJECT_PATH}/src" ${HTTP_INCLUDE_PUBLIC_DIRS} ${MQTT_INCLUDE_PUBLIC_DIRS}
-  REQUIRES mbedtls srtp json mdns
+  REQUIRES mbedtls mdns srtp2
 )
 
 add_definitions("-DESP32 -DCONFIG_MQTT=0 -DCONFIG_HTTP=1 -DHTTP_DO_NOT_USE_CUSTOM_CONFIG -DMQTT_DO_NOT_USE_CUSTOM_CONFIG")

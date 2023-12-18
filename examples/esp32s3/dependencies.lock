@@ -1,0 +1,22 @@
+dependencies:
+  idf:
+    component_hash: null
+    source:
+      type: idf
+    version: 4.4.4
+  peer:
+    component_hash: null
+    source:
+      path: /Users/mateus/Documents/repos/libpeer/examples/esp32s3/components/peer
+      type: local
+    version: '*'
+  srtp2:
+    component_hash: 030e895443640a2989fd8eaa6b7a54e9fada9e4555877f9f0830179d663b7a1d
+    source:
+      git: https://github.com/sepfy/esp_ports.git
+      path: .
+      type: git
+    version: 9060fa9fc295d199adc8ea9dfd67d734af9f17e7
+manifest_hash: a46aad76b914f17501954ee06b42d0c072ea29a33eadf5945c394a05f6406e64
+target: esp32s3
+version: 1.0.0
