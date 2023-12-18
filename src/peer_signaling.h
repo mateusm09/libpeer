@@ -4,18 +4,16 @@
 #include "peer_connection.h"
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-int peer_signaling_join_channel(const char *client_id, PeerConnection *pc);
+    int peer_signaling_join_channel(const char *client_id, PeerConnection *pc);
 
-void peer_signaling_leave_channel();
-
-int peer_signaling_loop();
+    void peer_signaling_leave_channel();
 
 #ifdef __cplusplus
-} 
+}
 #endif
 
-#endif //PEER_SIGNALING_H_
-
+#endif // PEER_SIGNALING_H_

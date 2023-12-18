@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "*.ejs": "html",
+        "rtcp.h": "c",
+        "mqtt_client.h": "c",
+        "esp_tls.h": "c"
+    },
+    "idf.espIdfPath": "/Users/mateus/Documents/repos/esp-adf/esp-idf"
+}

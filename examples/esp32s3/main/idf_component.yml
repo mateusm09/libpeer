@@ -7,7 +7,6 @@ dependencies:
     ## Required IDF version
     idf:
         version: ">=4.1.0"
-
     srtp2:
         # path: esp-ports
         git: https://github.com/sepfy/esp_ports.git
