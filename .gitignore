@@ -1,2 +1,7 @@
 cmake
 dist
+
+dist/
+build
+
+managed_components

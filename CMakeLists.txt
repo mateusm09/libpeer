@@ -3,14 +3,17 @@ project(peer)
 
 option(ENABLE_TESTS "Enable tests" OFF)
 
-include(third_party/coreHTTP/httpFilePaths.cmake)
-include(third_party/coreMQTT/mqttFilePaths.cmake)
+# removing this libs, as we'll use esp-idf components
+# include(third_party/coreHTTP/httpFilePaths.cmake)
+# include(third_party/coreMQTT/mqttFilePaths.cmake)
 
 include_directories(dist/include)
 
 link_directories(dist/lib)
 
-set(DEP_LIBS "srtp2" "usrsctp" "mbedtls" "mbedcrypto" "mbedx509" "cjson")
+# set(DEP_LIBS "srtp2" "usrsctp" "mbedtls" "mbedcrypto" "mbedx509" "cjson")
+# Using esp-idf mbedtls, removing unecessary json parsing library
+set(DEP_LIBS "srtp2" "usrsctp") 
 
 add_definitions("-Wunused-variable -Werror=sequence-point -Werror=pointer-sign -Werror=return-type -Werror=sizeof-pointer-memaccess -Wincompatible-pointer-types -DHTTP_DO_NOT_USE_CUSTOM_CONFIG -DMQTT_DO_NOT_USE_CUSTOM_CONFIG")
 
