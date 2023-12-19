@@ -13,7 +13,7 @@
 #include "udp.h"
 #include "config.h"
 #include "utils.h"
-#include "peer_connection.h"
+#include "peer_connection.c"
 
 typedef struct DtlsHeader DtlsHeader;
 
