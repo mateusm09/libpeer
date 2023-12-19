@@ -79,7 +79,7 @@ void app_main(void) {
 
   g_pc = peer_connection_create(&config);
   peer_connection_oniceconnectionstatechange(g_pc, oniceconnectionstatechange);
-  peer_signaling_join_channel(NULL, g_pc);
+  peer_signaling_join_channel("teste", g_pc);
 
   xTaskCreatePinnedToCore(peer_connection_task, "peer_connection", 8192, NULL, 10, &xPcTaskHandle, 1);
 
