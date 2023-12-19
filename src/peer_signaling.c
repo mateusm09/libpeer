@@ -140,12 +140,15 @@ static void peer_signaling_mqtt_cb(void *handler_args, esp_event_base_t base, in
     }
 }
 
-static esp_err_t peer_signaling_mqtt_connect(const char *uri)
+static esp_err_t peer_signaling_mqtt_connect(const char *uri, const char* client_id)
 {
     esp_err_t ret;
 
     esp_mqtt_client_config_t mqtt_cfg = {
         .uri = uri,
+        .username = "mateus",
+        .password = "macacaoprateado",
+        .client_id = client_id
     };
 
     g_ps.mqtt_ctx = esp_mqtt_client_init(&mqtt_cfg);
@@ -185,7 +188,7 @@ int peer_signaling_join_channel(const char *client_id, PeerConnection *pc)
 
     peer_connection_onicecandidate(pc, peer_signaling_onicecandidate);
 
-    peer_signaling_mqtt_connect("mqtt://192.168.4.3:1883");
+    peer_signaling_mqtt_connect("mqtt://testes.mindtech.com.br:1883", client_id);
     peer_signaling_mqtt_subscribe(client_id);
 
     return 0;

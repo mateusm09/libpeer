@@ -6,12 +6,15 @@
 
 #include "mbedtls/ssl.h"
 #include "mbedtls/sha256.h"
+#include "mbedtls/net_sockets.h"
 
 #include "dtls_srtp.h"
 #include "address.h"
 #include "udp.h"
 #include "config.h"
 #include "utils.h"
+#include "peer.h"
+
 typedef struct DtlsHeader DtlsHeader;
 
 struct DtlsHeader
@@ -225,6 +228,9 @@ int dtls_srtp_init(DtlsSrtp *dtls_srtp, DtlsSrtpRole role, void *user_data)
 
     mbedtls_ssl_setup(&dtls_srtp->ssl, &dtls_srtp->conf);
 
+    static mbedtls_timing_delay_context timer;
+    mbedtls_ssl_set_timer_cb(&dtls_srtp->ssl, &timer, mbedtls_timing_set_delay, mbedtls_timing_get_delay);
+    mbedtls_ssl_conf_export_keys_cb(&dtls_srtp->conf, &timer, dtls_srtp);
     return 0;
 }
 
@@ -376,76 +382,105 @@ static int dtls_srtp_handshake_server(DtlsSrtp *dtls_srtp)
 {
 
     int ret;
+    char buf[16];
+    PeerConnection *pc = (PeerConnection *)dtls_srtp->user_data;
+
+    udp_socket_close(&pc->agent.udp_socket);
+    // LOGI("DTLS server handshake start (%s)", buf);
+
+    mbedtls_net_context listen_fd, client_fd;
+    mbedtls_net_init(&listen_fd);
+    mbedtls_net_init(&client_fd);
+
+    char port[4];
+    itoa(pc->agent.udp_socket.bind_addr.port, port, 10);
+
+    if ((ret = mbedtls_net_bind(&listen_fd, "0.0.0.0", port, MBEDTLS_NET_PROTO_UDP)) != 0)
+    {
+        LOGI(" failed\n  ! mbedtls_net_bind returned %d", ret);
+        return ret;
+    }
+
+    unsigned char client_ip[16] = {0};
+    size_t client_ip_len = 0;
 
     while (1)
     {
+        mbedtls_net_free(&client_fd);
 
-        unsigned char client_ip[] = "test";
+        if ((ret = mbedtls_net_accept(&listen_fd, &client_fd, client_ip, sizeof(client_ip), &client_ip_len)) != 0)
+        {
+            LOGI(" failed\n  ! mbedtls_net_accept returned %d", ret);
+            return ret;
+        }
 
         mbedtls_ssl_session_reset(&dtls_srtp->ssl);
+        mbedtls_ssl_set_client_transport_id(&dtls_srtp->ssl, client_ip, client_ip_len);
+        // mbedtls_ssl_set_client_transport_id(&dtls_srtp->ssl, client_ip, sizeof(client_ip));
 
-        mbedtls_ssl_set_client_transport_id(&dtls_srtp->ssl, client_ip, sizeof(client_ip));
-
-        ret = dtls_srtp_do_handshake(dtls_srtp);
+        ret = dtls_srtp_do_handshake(dtls_srtp, &client_fd);
+        LOGI("DTLS server handshake ret: 0x%.4x", (unsigned int)-ret);
 
         if (ret == MBEDTLS_ERR_SSL_HELLO_VERIFY_REQUIRED)
         {
-
-            LOGD("DTLS hello verification requested");
+            LOGI("DTLS hello verification requested");
+            // break;
         }
         else if (ret != 0)
         {
-
             LOGE("failed! mbedtls_ssl_handshake returned -0x%.4x", (unsigned int)-ret);
-
             break;
         }
         else
         {
-
+            LOGI("DTLS handshake done");
             break;
         }
     }
 
-    LOGD("DTLS server handshake done");
+    mbedtls_net_free(&listen_fd);
+    mbedtls_net_free(&client_fd);
+
+    udp_socket_open(&pc->agent.udp_socket);
+    udp_socket_bind(&pc->agent.udp_socket, &pc->agent.selected_pair->local->addr);
 
     return ret;
 }
 
-static int dtls_srtp_handshake_client(DtlsSrtp *dtls_srtp)
-{
+// static int dtls_srtp_handshake_client(DtlsSrtp *dtls_srtp)
+// {
 
-    int ret;
+//     int ret;
 
-    ret = dtls_srtp_do_handshake(dtls_srtp);
+//     ret = dtls_srtp_do_handshake(dtls_srtp);
 
-    if (ret != 0)
-    {
+//     if (ret != 0)
+//     {
 
-        LOGE("failed! mbedtls_ssl_handshake returned -0x%.4x\n\n", (unsigned int)-ret);
-    }
+//         LOGE("failed! mbedtls_ssl_handshake returned -0x%.4x\n\n", (unsigned int)-ret);
+//     }
 
-    int flags;
+//     int flags;
 
-    if ((flags = mbedtls_ssl_get_verify_result(&dtls_srtp->ssl)) != 0)
-    {
-#if !defined(MBEDTLS_X509_REMOVE_INFO)
-        char vrfy_buf[512];
-#endif
+//     if ((flags = mbedtls_ssl_get_verify_result(&dtls_srtp->ssl)) != 0)
+//     {
+// #if !defined(MBEDTLS_X509_REMOVE_INFO)
+//         char vrfy_buf[512];
+// #endif
 
-        printf(" failed\n");
+//         printf(" failed\n");
 
-#if !defined(MBEDTLS_X509_REMOVE_INFO)
-        mbedtls_x509_crt_verify_info(vrfy_buf, sizeof(vrfy_buf), "  ! ", flags);
+// #if !defined(MBEDTLS_X509_REMOVE_INFO)
+//         mbedtls_x509_crt_verify_info(vrfy_buf, sizeof(vrfy_buf), "  ! ", flags);
 
-        printf("%s\n", vrfy_buf);
-#endif
-    }
+//         printf("%s\n", vrfy_buf);
+// #endif
+//     }
 
-    LOGD("DTLS client handshake done");
+//     LOGD("DTLS client handshake done");
 
-    return ret;
-}
+//     return ret;
+// }
 
 int dtls_srtp_handshake(DtlsSrtp *dtls_srtp, Address *addr)
 {
@@ -454,16 +489,16 @@ int dtls_srtp_handshake(DtlsSrtp *dtls_srtp, Address *addr)
 
     dtls_srtp->remote_addr = addr;
 
-    if (dtls_srtp->role == DTLS_SRTP_ROLE_SERVER)
-    {
+    // if (dtls_srtp->role == DTLS_SRTP_ROLE_SERVER)
+    // {
 
         ret = dtls_srtp_handshake_server(dtls_srtp);
-    }
-    else
-    {
+    // }
+    // else
+    // {
 
-        ret = dtls_srtp_handshake_client(dtls_srtp);
-    }
+    //     ret = dtls_srtp_handshake_client(dtls_srtp);
+    // }
 
 // XXX: Not sure if this is needed
 #if 0
