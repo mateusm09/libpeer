@@ -13,7 +13,7 @@
 #include "udp.h"
 #include "config.h"
 #include "utils.h"
-#include "peer.h"
+#include "peer_connection.h"
 
 typedef struct DtlsHeader DtlsHeader;
 
@@ -230,7 +230,7 @@ int dtls_srtp_init(DtlsSrtp *dtls_srtp, DtlsSrtpRole role, void *user_data)
 
     static mbedtls_timing_delay_context timer;
     mbedtls_ssl_set_timer_cb(&dtls_srtp->ssl, &timer, mbedtls_timing_set_delay, mbedtls_timing_get_delay);
-    mbedtls_ssl_conf_export_keys_cb(&dtls_srtp->conf, &timer, dtls_srtp);
+    mbedtls_ssl_conf_export_keys_cb(&dtls_srtp->conf, dtls_srtp_key_derivation, dtls_srtp);
     return 0;
 }
 
@@ -357,7 +357,7 @@ static void dtls_srtp_key_derivation(void *context, mbedtls_ssl_export_keys_t se
     dtls_srtp->state = DTLS_SRTP_STATE_CONNECTED;
 }
 
-static int dtls_srtp_do_handshake(DtlsSrtp *dtls_srtp)
+static int dtls_srtp_do_handshake(DtlsSrtp *dtls_srtp, mbedtls_net_context *client_fd)
 {
 
     int ret;
@@ -366,7 +366,7 @@ static int dtls_srtp_do_handshake(DtlsSrtp *dtls_srtp)
 
     // mbedtls_ssl_set_timer_cb(&dtls_srtp->ssl, &timer, mbedtls_timing_set_delay, mbedtls_timing_get_delay);
 
-    mbedtls_ssl_set_bio(&dtls_srtp->ssl, dtls_srtp, dtls_srtp->udp_send, dtls_srtp->udp_recv, NULL);
+    mbedtls_ssl_set_bio(&dtls_srtp->ssl, client_fd, mbedtls_net_send, mbedtls_net_recv, NULL);
 
     do
     {
@@ -392,7 +392,7 @@ static int dtls_srtp_handshake_server(DtlsSrtp *dtls_srtp)
     mbedtls_net_init(&listen_fd);
     mbedtls_net_init(&client_fd);
 
-    char port[4];
+    char port[5];
     itoa(pc->agent.udp_socket.bind_addr.port, port, 10);
 
     if ((ret = mbedtls_net_bind(&listen_fd, "0.0.0.0", port, MBEDTLS_NET_PROTO_UDP)) != 0)
@@ -416,7 +416,6 @@ static int dtls_srtp_handshake_server(DtlsSrtp *dtls_srtp)
 
         mbedtls_ssl_session_reset(&dtls_srtp->ssl);
         mbedtls_ssl_set_client_transport_id(&dtls_srtp->ssl, client_ip, client_ip_len);
-        // mbedtls_ssl_set_client_transport_id(&dtls_srtp->ssl, client_ip, sizeof(client_ip));
 
         ret = dtls_srtp_do_handshake(dtls_srtp, &client_fd);
         LOGI("DTLS server handshake ret: 0x%.4x", (unsigned int)-ret);
