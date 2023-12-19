@@ -143,26 +143,6 @@ static void peer_signaling_mqtt_cb(void *handler_args, esp_event_base_t base, in
         break;
     case MQTT_EVENT_DATA:
     {
-        // char *token;
-        // char type[20];
-
-        // token = strtok(event->topic, "/");
-        // do
-        // {
-        //     token = strtok(NULL, "/");
-        //     if (token != NULL)
-        //     {
-        //         strcpy(type, token);
-        //     }
-        // } while (token != NULL);
-
-        // if (type == NULL)
-        //     break;
-
-        // LOGI("MQTT_EVENT_DATA, topic=%s, type=%s", event->topic, type);
-
-        // peer_signaling_process_request(str, event->data, event->data_len);
-
         if (strstr(event->topic, "answer") != NULL)
         {
             peer_signaling_process_request("answer", event->data, event->data_len);
