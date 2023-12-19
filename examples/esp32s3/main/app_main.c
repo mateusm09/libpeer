@@ -21,13 +21,7 @@
 static const char *TAG = "webrtc";
 
 static TaskHandle_t xPcTaskHandle = NULL;
-static TaskHandle_t xAudioTaskHandle = NULL;
-static TaskHandle_t xVideoTaskHandle = NULL;
 
-extern esp_err_t audio_init();
-extern esp_err_t video_init();
-extern void audio_task(void *pvParameters);
-extern void video_task(void *pvParameters);
 extern void wifi_init_sta();
 
 PeerConnection *g_pc;
@@ -65,7 +59,6 @@ void app_main(void) {
     { .urls = "stun:stun.l.google.com:19302" }
    },
    .audio_codec = CODEC_OPUS,
-   .video_codec = CODEC_H264
   };
 
   ESP_LOGI(TAG, "[APP] Startup..");
@@ -81,20 +74,12 @@ void app_main(void) {
   ESP_ERROR_CHECK(mdns_init());
 
   wifi_init_sta();
-  
-  audio_init();
-
-  video_init();
 
   peer_init();
 
   g_pc = peer_connection_create(&config);
   peer_connection_oniceconnectionstatechange(g_pc, oniceconnectionstatechange);
   peer_signaling_join_channel(NULL, g_pc);
-
-  xTaskCreatePinnedToCore(audio_task, "audio", 20480, NULL, 5, &xAudioTaskHandle, 0);
-
-  xTaskCreatePinnedToCore(video_task, "video", 10240, NULL, 6, &xVideoTaskHandle, 0);
 
   xTaskCreatePinnedToCore(peer_connection_task, "peer_connection", 8192, NULL, 10, &xPcTaskHandle, 1);
 
